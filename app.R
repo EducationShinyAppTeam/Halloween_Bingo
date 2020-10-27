@@ -50,6 +50,13 @@ ui <- dashboardPage(
             div("B"), div("I"), div("N"), div("G"), div("O")
           ),
           uiOutput("gameBoard", class = "game-board"),
+          tags$small(
+            "Source:", 
+            tags$a(
+              href = "https://www.todaysparent.com/kids/halloween-bingo-game-printable/",
+                     "Today's Parent"
+              )
+            ),
           shinyjs::useShinyjs()
         ),
         div(
