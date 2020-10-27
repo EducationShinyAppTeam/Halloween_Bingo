@@ -1,5 +1,6 @@
 #shiny-tab-game, h3 {
-  font-family: 'Underdog', cursive;  
+  font-family: 'Underdog', cursive;
+  color: #2C2E36;
 }
 
 .bingo-header {
@@ -34,16 +35,16 @@
 
 .skin-yellow .grid-board {
   background-color: white !important;
-  border: 0.25rem solid black !important;
+  border: 0.25rem solid #2C2E36 !important;
 }
 
 .skin-yellow .grid-tile button {
-  border: 2px solid black !important;
+  border: 2px solid #2C2E36 !important;
 }
 
 .skin-yellow .btn-default {
   background-color: white !important;
-  color: black;
+  color: #2C2E36 !important;
 }
 
 .grid-tile .btn {
