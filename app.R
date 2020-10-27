@@ -31,14 +31,14 @@ ui <- dashboardPage(
     ),
     tags$div(class = "sidebar-logo", boastUtils::psu_eberly_logo("reversed"))
   ),
-  #Pages
+  # Pages
   dashboardBody(
     tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
       tags$link(rel = "stylesheet", type = "text/css", href = "https://fonts.googleapis.com/css2?family=Underdog&display=swap")
     ),
     tabItems(
-    #Game Page
+    # Game Page
     tabItem(
       tabName = "game",
       h3(uiOutput("player")),
@@ -314,5 +314,3 @@ server <- function(input, output, session) {
 }
 
 boastApp(ui = ui, server = server)
-
-## End(Not run)
