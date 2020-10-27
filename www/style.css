@@ -1,0 +1,111 @@
+#shiny-tab-game, h3 {
+  font-family: 'Underdog', cursive;  
+}
+
+.bingo-header {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-column-gap: 0;
+    max-width: 400px;
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+#grid-3-3::before {
+    content: 'FREE';
+    font-size: 1.4rem;
+    vertical-align: middle;
+    line-height: 4rem;
+}
+
+.selected::before {
+    font-size: 3.75rem !important;
+    line-height: 1 !important;
+    text-align: center;
+    content: 'X' !important;
+    color: purple;
+    vertical-align: initial !important;
+}
+
+.skin-yellow .grid-board {
+  background-color: white !important;
+  border: 0.25rem solid black !important;
+}
+
+.skin-yellow .grid-tile button {
+  border: 2px solid black !important;
+}
+
+.skin-yellow .btn-default {
+  background-color: white !important;
+  color: black;
+}
+
+.grid-tile .btn {
+  background-image: unset;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.cat {
+  background-image: url('cat.png') !important;
+}
+
+.poison {
+  background-image: url('poison.png') !important; 
+}
+
+.rat {
+  background-image: url('rat.png') !important;  
+}
+
+.frankenstein {
+  background-image: url('frankenstein.png') !important;
+}
+
+.witch {
+  background-image: url('witch.png') !important;
+}
+
+.skull {
+  background-image: url('skull.png') !important;  
+}
+
+.bat {
+  background-image: url('bat.png') !important;
+}
+
+.werewolf {
+  background-image: url('werewolf.png') !important;
+}
+
+.spider {
+  background-image: url('spider.png') !important;
+}
+
+.cauldron {
+  background-image: url('cauldron.png') !important;
+}
+
+.vampire {
+  background-image: url('vampire.png') !important;
+}
+
+.bone {
+  background-image: url('bone.png') !important;
+}
+
+
+.broom {
+  background-image: url('broom.png') !important;
+}
+
+.mummy {
+  background-image: url('mummy.png') !important;
+}
+
