@@ -3,6 +3,10 @@ library(shinyalert)
 library(shinyBS)
 library(shinyWidgets)
 
+## REMOVE ME ##
+TESTING <- TRUE
+## REMOVE ME ##
+
 GRID_SIZE <- 5
 TILE_COUNT <- GRID_SIZE ^ 2
 TILES <- c(
@@ -12,6 +16,8 @@ TILES <- c(
 )
 CENTER_TILE <- paste0("grid-", GRID_SIZE %/% 2 + 1, "-", GRID_SIZE %/% 2 + 1)
 APP_TITLE <<- "Halloween Bingo"
+
+callHistory <- reactiveVal(list())
 
 ui <- dashboardPage(
   skin = "yellow",
@@ -76,10 +82,15 @@ ui <- dashboardPage(
            bsButton(inputId = "reset", label = "Reset", icon = icon("refresh")),
            bsButton(inputId = "newCard", label = "New Card", icon = icon("gift")),
            bsButton(inputId = "bingo", label = "BINGO", icon = icon("hand-stop-o")),
+           br(),
            h3("Call History"),
            uiOutput("callHistory", class = "history")
           )
         )
+      ),
+      conditionalPanel("input.host == 'TRUE'",
+        textInput("host", label = "Host", value = "FALSE"),
+        bsButton("call", label = "Call")
       )
     ),
     tabItem(
@@ -131,6 +142,15 @@ server <- function(input, output, session) {
       ncol = GRID_SIZE
     )
   gameProgress <- reactiveVal(FALSE)
+  
+  observe({
+    query <- parseQueryString(session$clientData$url_search)  
+    
+    if (!is.null(query$hostKey) && query$hostKey == "spooky" || TESTING) {
+      updateTextInput(session, inputId = "host", value = "TRUE")
+    }
+  })
+  
   
   # Helper Functions
   .tileCoordinates <- function(tile = NULL, index = NULL) {
@@ -310,6 +330,18 @@ server <- function(input, output, session) {
       "grid-fill",
       paste0("grid-", GRID_SIZE, "x", GRID_SIZE)
     ))
+  })
+  
+  observeEvent(input$call, {
+    col <- sample(c("B", "I", "N", "G", "O"), 1)
+    tile <- sample(TILES, 1)
+    val <- paste(col, tile, sep = "-")
+    print(paste("Host call:", val))
+    callHistory(append(callHistory(), val))
+    
+    output$callHistory <- renderUI({
+      paste(callHistory(), collapse = ", ")
+    })  
   })
   
   # Program Submit Button
