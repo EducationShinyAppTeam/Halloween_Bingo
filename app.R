@@ -10,6 +10,7 @@ TILES <- c(
   "frankenstein", "mummy", "poison", "rat",
   "skull", "spider", "vampire", "werewolf", "witch"
 )
+CENTER_TILE <- paste0("grid-", GRID_SIZE %/% 2 + 1, "-", GRID_SIZE %/% 2 + 1)
 APP_TITLE <<- "Halloween Bingo"
 
 ui <- dashboardPage(
@@ -67,10 +68,16 @@ ui <- dashboardPage(
           div(
            h3("Rules"),
            tags$ul(
-             tags$li(paste(GRID_SIZE), "in a row."),
-             tags$li("Diagonals (corner to corner)."),
-             tags$li("Four corners.")
-           )
+             tags$li("You may select a new card until a marker is placed."),
+             tags$li("Match", GRID_SIZE, "in a row/column."),
+             tags$li("Diagonals (corner to corner) and four corners also count."),
+             tags$li("Click", tags$strong("BINGO"), "when a win condition is met.")
+           ),
+           bsButton(inputId = "reset", label = "Reset", icon = icon("refresh")),
+           bsButton(inputId = "newCard", label = "New Card", icon = icon("gift")),
+           bsButton(inputId = "bingo", label = "BINGO", icon = icon("hand-stop-o")),
+           h3("Call History"),
+           uiOutput("callHistory", class = "history")
           )
         )
       )
@@ -123,7 +130,7 @@ server <- function(input, output, session) {
       nrow = GRID_SIZE,
       ncol = GRID_SIZE
     )
-  gameProgress <- FALSE
+  gameProgress <- reactiveVal(FALSE)
   
   # Helper Functions
   .tileCoordinates <- function(tile = NULL, index = NULL) {
@@ -160,12 +167,7 @@ server <- function(input, output, session) {
   .btnReset <- function(index) {
     coords <- .tileCoordinates(index = index)
     id <- paste0("grid-", coords$row, "-", coords$col)
-    updateButton(
-      session = session,
-      inputId = id,
-      label = "",
-      disabled = FALSE
-    )
+    shinyjs::removeClass(id = id, "selected")
   }
   
   .score <- function(score, tile, value) {
@@ -207,6 +209,10 @@ server <- function(input, output, session) {
     
     index <- .tileIndex(tile)
     
+    if(!gameProgress()) {
+      gameProgress(TRUE)
+    }
+    
     # Toggle selected
     shinyjs::toggleClass(id = tile, class = "selected")
   }
@@ -222,10 +228,24 @@ server <- function(input, output, session) {
       )
     gameProgress <- FALSE
     activeBtn <- NA
-    
-    updateButton(session = session,
-                 inputId = "submit",
-                 disabled = TRUE)
+  }
+  
+  .generateTileset <- function() {
+    replicate(GRID_SIZE, sample(x = TILES, size = GRID_SIZE, replace = FALSE))
+  }
+  
+  .newCard <- function() {
+    tileset <- .generateTileset()
+    sapply(1:GRID_SIZE, function(row) {
+      sapply(1:GRID_SIZE, function(column) {
+        id <- paste0("grid-", row, "-", column)
+        if (id != CENTER_TILE) {
+          tile <- tileset[row, column]
+          shinyjs::removeClass(id = id, class = paste(TILES))
+          shinyjs::addClass(id = id, class = tile)
+        }
+      })
+    })
   }
   
   # Program the Reset Button
@@ -233,15 +253,23 @@ server <- function(input, output, session) {
     .gameReset()
   })
   
+  # Program the New Card Button
+  observeEvent(input$newCard, {
+    .newCard()
+  })
+  
+  observeEvent(gameProgress(), {
+    if(gameProgress()) {
+      updateButton(session, inputId = "newCard", disabled = TRUE)
+    }
+  })
+  
   # Render Game Board / Attach Observers
   output$gameBoard <- renderUI({
     board <- list()
     index <- 1
     
-    center <- GRID_SIZE %/% 2 + 1
-    centerTile <- paste0("grid-", center, "-", center)
-    
-    tileset <- replicate(GRID_SIZE, sample(x = TILES, size = GRID_SIZE, replace = FALSE))
+    tileset <- .generateTileset()
     
     sapply(1:GRID_SIZE, function(row) {
       sapply(1:GRID_SIZE, function(column) {
@@ -251,7 +279,7 @@ server <- function(input, output, session) {
         
         classes <- "grid-fill"
         
-        if (id != centerTile) {
+        if (id != CENTER_TILE) {
           classes <- paste(classes, tile)
         } else {
           classes <- paste(classes, "free")
