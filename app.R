@@ -1,11 +1,8 @@
 library(boastUtils)
+library(shinyjs)
 library(shinyalert)
 library(shinyBS)
 library(shinyWidgets)
-
-## REMOVE ME ##
-TESTING <- TRUE
-## REMOVE ME ##
 
 GRID_SIZE <- 5
 TILE_COUNT <- GRID_SIZE ^ 2
@@ -82,15 +79,20 @@ ui <- dashboardPage(
            bsButton(inputId = "reset", label = "Reset", icon = icon("refresh")),
            bsButton(inputId = "newCard", label = "New Card", icon = icon("gift")),
            bsButton(inputId = "bingo", label = "BINGO", icon = icon("hand-stop-o")),
-           br(),
-           h3("Call History"),
-           uiOutput("callHistory", class = "history")
+           hidden(
+             div(id = "history",
+              br(),
+              h3("Call History"),
+              uiOutput("callHistory", class = "callHistory")
+             )
+           )
           )
         )
       ),
-      conditionalPanel("input.host == 'TRUE'",
-        textInput("host", label = "Host", value = "FALSE"),
-        bsButton("call", label = "Call")
+      hidden(
+        div(id = "hostPanel",
+            bsButton("call", label = "Call")    
+        )
       )
     ),
     tabItem(
@@ -142,12 +144,14 @@ server <- function(input, output, session) {
       ncol = GRID_SIZE
     )
   gameProgress <- reactiveVal(FALSE)
+  isHost <- FALSE
   
   observe({
     query <- parseQueryString(session$clientData$url_search)  
     
-    if (!is.null(query$hostKey) && query$hostKey == "spooky" || TESTING) {
-      updateTextInput(session, inputId = "host", value = "TRUE")
+    if (!is.null(query$hostKey) && query$hostKey == "spooky" || isLocal()) {
+      isHost <- TRUE
+      show("hostPanel")
     }
   })
   
@@ -333,15 +337,15 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$call, {
+    show("history")
     col <- sample(c("B", "I", "N", "G", "O"), 1)
-    tile <- sample(TILES, 1)
-    val <- paste(col, tile, sep = "-")
-    print(paste("Host call:", val))
-    callHistory(append(callHistory(), val))
+    tile <- list(span(class = paste(col, "icon", sample(TILES, 1))))
     
-    output$callHistory <- renderUI({
-      paste(callHistory(), collapse = ", ")
-    })  
+    callHistory(append(callHistory(), tile))
+  })
+  
+  output$callHistory <- renderUI({
+    callHistory()
   })
   
   # Program Submit Button

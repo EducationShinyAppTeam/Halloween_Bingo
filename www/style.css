@@ -53,6 +53,25 @@
   background-repeat: no-repeat;
 }
 
+.callHistory {
+  font-size: 2.5rem;
+  line-height: calc(3rem - 1px);
+}
+
+.call {
+  border: 1px solid #2C2E36;
+}
+
+.icon {
+    width: 3.5rem;
+    height: 2.5rem;
+    display: inline-block;
+    background-position: 50%;
+    background-size: 2.5rem;
+    vertical-align: text-top;
+    background-repeat: no-repeat;
+}
+
 .free {
   background-image: url('free.png') !important;
 }
@@ -114,3 +133,33 @@
   background-image: url('mummy.png') !important;
 }
 
+.B::before, .I::before, .N::before, .G::before, .O::before {
+    vertical-align: top;
+    line-height: 1rem;
+    -webkit-text-stroke: 1px black;
+}
+
+.B::before {
+  content: 'B';
+  color: red;
+}
+
+.I::before {
+  content: 'I';
+  color: orange;
+}
+
+.N::before {
+  content: 'N';
+  color: green;
+}
+
+.G::before {
+  content: 'G';
+  color: blue;
+}
+
+.O::before {
+  content: 'O';
+  color: purple;
+}
