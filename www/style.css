@@ -7,8 +7,8 @@
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     grid-column-gap: 0;
-    max-width: 400px;
     width: 100%;
+    max-width: 540px;
     height: auto;
     border-radius: 0.5rem;
     text-align: center;
@@ -17,20 +17,20 @@
     font-weight: 600;
 }
 
-#grid-3-3::before {
-    content: 'FREE';
-    font-size: 1.4rem;
-    vertical-align: middle;
-    line-height: 4rem;
+.grid-board.grid-5x5 {
+  max-width: 540px !important;
 }
 
 .selected::before {
-    font-size: 3.75rem !important;
-    line-height: 1 !important;
-    text-align: center;
-    content: 'X' !important;
-    color: purple;
-    vertical-align: initial !important;
+    content: 'x';
+    color: transparent;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-image: url(x.png) !important;
+    background-position: 50%;
+    display: block;
+    width: 100%;
+    height: 100%;
 }
 
 .skin-yellow .grid-board {
@@ -51,6 +51,10 @@
   background-image: unset;
   background-size: cover;
   background-repeat: no-repeat;
+}
+
+.free {
+  background-image: url('free.png') !important;
 }
 
 .cat {

@@ -5,6 +5,11 @@ library(shinyWidgets)
 
 GRID_SIZE <- 5
 TILE_COUNT <- GRID_SIZE ^ 2
+TILES <- c(
+  "bat", "bone", "broom", "cat", "cauldron",
+  "frankenstein", "mummy", "poison", "rat",
+  "skull", "spider", "vampire", "werewolf", "witch"
+)
 APP_TITLE <<- "Halloween Bingo"
 
 ui <- dashboardPage(
@@ -27,6 +32,11 @@ ui <- dashboardPage(
         text = "Game",
         tabName = "game",
         icon = icon("gamepad")
+      ),
+      menuItem(
+        text = "References",
+        tabName = "references",
+        icon = icon("leanpub")
       )
     ),
     tags$div(class = "sidebar-logo", boastUtils::psu_eberly_logo("reversed"))
@@ -50,13 +60,6 @@ ui <- dashboardPage(
             div("B"), div("I"), div("N"), div("G"), div("O")
           ),
           uiOutput("gameBoard", class = "game-board"),
-          tags$small(
-            "Source:", 
-            tags$a(
-              href = "https://www.todaysparent.com/kids/halloween-bingo-game-printable/",
-                     "Today's Parent"
-              )
-            ),
           shinyjs::useShinyjs()
         ),
         div(
@@ -70,6 +73,39 @@ ui <- dashboardPage(
            )
           )
         )
+      )
+    ),
+    tabItem(
+      tabName = "references",
+      withMathJax(),
+      h2("References"),
+      p(
+        class = "hangingindent",
+        "Attali, D. and Edwards, T. (2018). shinyalert: Easily create pretty popup messages (modals) in 'Shiny'. (v1.0). [R package]. Available from https://CRAN.R-project.org/package=shinyalert"
+      ),
+      p(
+        class = "hangingindent",
+        "Bailey, E. (2015). shinyBS: Twitter bootstrap components for shiny. (v0.61). [R package]. Available from https://CRAN.R-project.org/package=shinyBS"
+      ),
+      p(
+        class = "hangingindent",
+        "Carey, R. (2020). boastUtils: BOAST Utilities. [R Package]. Available from https://github.com/EducationShinyAppTeam/boastUtils"
+      ),
+      p(
+        class = "hangingindent",
+        "Chang, W. and Borges Ribeio, B. (2018). shinydashboard: Create dashboards with 'Shiny'. (v0.7.1) [R Package]. Available from https://CRAN.R-project.org/package=shinydashboard"
+      ),
+      p(
+        class = "hangingindent",
+        "Chang, W., Cheng, J., Allaire, J., Xie, Y., and McPherson, J. (2019). shiny: Web application framework for R. (v1.4.0) [R Package]. Available from https://CRAN.R-project.org/package=shiny"
+      ),
+      p(
+        class = "hangingindent",
+        "Perrier, V., Meyer, F., Granjon, D. (2019). shinyWidgets: Custom inputs widgets for shiny. (v0.5.0) [R Package]. Available from https://CRAN.R-project.org/package=shinyWidgets"
+      ),
+      p(
+        class = "hangingindent",
+        "Today's Parent (2014). Halloween bingo game printable [Web]. https://www.todaysparent.com/kids/halloween-bingo-game-printable/"
       )
     )
     )
@@ -108,8 +144,7 @@ server <- function(input, output, session) {
       col <- index - (GRID_SIZE * (row - 1))
     }
     
-    coordinates <- list("row" = row,
-                        "col" = col)
+    coordinates <- list("row" = row, "col" = col)
     
     return(coordinates)
   }
@@ -117,7 +152,7 @@ server <- function(input, output, session) {
   .tileIndex <- function(tile) {
     coords <- .tileCoordinates(tile)
     
-    index = GRID_SIZE * (coords$row - 1) + coords$col
+    index <- GRID_SIZE * (coords$row - 1) + coords$col
     
     return(index)
   }
@@ -169,8 +204,6 @@ server <- function(input, output, session) {
   }
   
   .boardBtn <- function(tile) {
-
-    print(tile)
     
     index <- .tileIndex(tile)
     
@@ -205,9 +238,24 @@ server <- function(input, output, session) {
     board <- list()
     index <- 1
     
+    center <- GRID_SIZE %/% 2 + 1
+    centerTile <- paste0("grid-", center, "-", center)
+    
+    tileset <- replicate(GRID_SIZE, sample(x = TILES, size = GRID_SIZE, replace = FALSE))
+    
     sapply(1:GRID_SIZE, function(row) {
       sapply(1:GRID_SIZE, function(column) {
+        
         id <- paste0("grid-", row, "-", column)
+        tile <- tileset[row, column]
+        
+        classes <- "grid-fill"
+        
+        if (id != centerTile) {
+          classes <- paste(classes, tile)
+        } else {
+          classes <- paste(classes, "free")
+        }
         
         board[[index]] <<- tags$li(
           actionButton(
@@ -215,7 +263,7 @@ server <- function(input, output, session) {
             label = "",
             color = "primary",
             style = "bordered",
-            class = "grid-fill"
+            class = classes
           ),
           class = "grid-tile"
         )
