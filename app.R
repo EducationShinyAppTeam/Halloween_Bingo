@@ -13,7 +13,8 @@ TILES <<- c(
 )
 BINGO <<- c("B", "I", "N", "G", "O")
 TILE_POOL <<- paste(sapply(TILES, function(tile) { paste0(BINGO, "-", tile) }))
-CENTER_TILE <<- paste0("grid-", GRID_SIZE %/% 2 + 1, "-", GRID_SIZE %/% 2 + 1)
+CENTER <<- GRID_SIZE %/% 2 + 1
+CENTER_TILE <<- paste0("grid-", CENTER, "-", CENTER)
 APP_TITLE <<- "Halloween Bingo"
 callHistory <<- reactiveVal(c())
 callHistoryUI <<- reactiveVal(list())
@@ -247,23 +248,30 @@ server <- function(input, output, session) {
   .checkDiagonals <- function() {
     match <- FALSE
     
-    # TODO: CHECK DIAG
+    # Top Left => Bottom Right
+    diagLeft <- diag(tileset())
+    diagLeft <- paste0(BINGO, "-", diagLeft)
+    match(callHistory(), diagLeft)
+    
+    # Top Right => Bottom Left
+    diagRight <- diag(apply(t(tileset()), 2, rev))
     
     return(match) 
   }
   
+  # Check the four corners
   .checkCorners <- function() {
 
     corners <- c(
-      paste0(BINGO[1], "-", tileset()[1,1]),                         # TL
-      paste0(BINGO[1], "-", tileset()[1, GRID_SIZE]),                # TR
-      paste0(BINGO[GRID_SIZE], "-", tileset()[GRID_SIZE, 1]),        # BL
+      paste0(BINGO[1], "-", tileset()[1, 1]),                        # TL
+      paste0(BINGO[GRID_SIZE], "-", tileset()[1, GRID_SIZE]),        # TR
+      paste0(BINGO[1], "-", tileset()[GRID_SIZE, 1]),                # BL
       paste0(BINGO[GRID_SIZE], "-", tileset()[GRID_SIZE, GRID_SIZE]) # BR
     )
     
     matches <- match(callHistory(), corners)
     
-    ifelse(length(na.omit(matches) == 4), TRUE, FALSE)
+    ifelse(length(na.omit(matches)) == 4, TRUE, FALSE)
   }
   
   .checkState <- function() {
@@ -332,6 +340,7 @@ server <- function(input, output, session) {
 
   .generateTileset <- function() {
     set <- replicate(GRID_SIZE, sample(x = TILES, size = GRID_SIZE, replace = FALSE))
+    set[CENTER, CENTER] <- "free"
     colnames(set) <- BINGO
     return(set)
   }
@@ -378,11 +387,7 @@ server <- function(input, output, session) {
 
         classes <- "grid-fill"
 
-        if (id != CENTER_TILE) {
-          classes <- paste(classes, tile)
-        } else {
-          classes <- paste(classes, "free")
-        }
+        classes <- paste(classes, tile)
 
         board[[index]] <<- tags$li(
           actionButton(
@@ -416,7 +421,9 @@ server <- function(input, output, session) {
     # SAMPLE POOL OF AVAILABLE OPTIONS
     # THIS PREVENTS REPEATS
     cleanPool <- na.omit(TILE_POOL)
-  
+    if(length(callHistory()) == 0) {
+      callHistory("N-free")  
+    }
     if(length(cleanPool) > 0) {
       currentCall <- sample(na.omit(cleanPool), 1)
       index <- match(currentCall, TILE_POOL)
@@ -446,7 +453,6 @@ server <- function(input, output, session) {
       output$callHistory <- renderUI({
         callHistoryUI()
       })
-      #print(callHistory())
     }
   })
   
