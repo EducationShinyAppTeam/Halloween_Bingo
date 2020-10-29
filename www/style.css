@@ -2,10 +2,6 @@
   padding: 1.5rem !important;
 }
 
-.full-block {
-  min-height: 100vw;
-}
-
 .game-board {
   min-height: unset !important;
 }
@@ -18,6 +14,12 @@
 .flex-panel {
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 960px) {
+  .full-block {
+    min-height: 100vw;
+  }
 }
 
 @media (max-width: 576px) {

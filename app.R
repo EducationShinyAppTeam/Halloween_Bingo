@@ -11,10 +11,13 @@ TILES <- c(
   "frankenstein", "mummy", "poison", "rat",
   "skull", "spider", "vampire", "werewolf", "witch"
 )
+BINGO <- c("B", "I", "N", "G", "O")
+TILE_POOL <<- paste(sapply(TILES, function(tile) { paste0(BINGO, "-", tile) }))
 CENTER_TILE <- paste0("grid-", GRID_SIZE %/% 2 + 1, "-", GRID_SIZE %/% 2 + 1)
 APP_TITLE <<- "Halloween Bingo"
-
-callHistory <<- reactiveVal(list())
+callHistory <<- reactiveVal(c())
+callHistoryUI <<- reactiveVal(list())
+declaredBingo <<- reactiveVal(list())
 
 ui <- dashboardPage(
   skin = "yellow",
@@ -50,7 +53,8 @@ ui <- dashboardPage(
     tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
       tags$link(rel = "stylesheet", type = "text/css", href = "https://fonts.googleapis.com/css2?family=Underdog&display=swap"),
-      shinyjs::useShinyjs()
+      shinyjs::useShinyjs(),
+      shinyalert::useShinyalert()
     ),
     tabItems(
       # Game Page
@@ -59,18 +63,37 @@ ui <- dashboardPage(
         fluidRow(
           div(
             class = "col-sm-6",
-            div(class = "full-block",
+            hidden(
+              div(
+                id = "hostPanel",
+                h3("Host Controls"),
+                bsButton("call", label = "Call"),
+                br()
+              ),
+              hidden(
+                div(
+                  id = "declared",
+                  h3("Declared"),
+                  uiOutput("declaredBingo", class = "declaredBingo")
+                )
+              )
+            ),
+            div(
+              id = "playRegion",
+              class = "full-block",
               div(
                 class = "bingo-header",
                 div("B"), div("I"), div("N"), div("G"), div("O")
               ),
-              uiOutput("gameBoard", class = "game-board")  
+              uiOutput("gameBoard", class = "game-board")
             )
           ),
           div(
             class = "col-sm-6",
-            div(class = "flex-panel sm-reverse",
+            div(
+              class = "flex-panel sm-reverse",
               div(
+                id = "playerPanel",
                 h3("Rules"),
                 tags$ul(
                   tags$li("You may select a new card until a marker is placed."),
@@ -85,24 +108,16 @@ ui <- dashboardPage(
               ),
               hidden(
                 div(
-                  id = "hostPanel",
-                  br(),
-                  h3("Host Controls"),
-                  bsButton("call", label = "Call"),
-                  br()
-                )
-              ),
-              hidden(
-                div(
                   id = "history",
                   h3("Call History"),
-                  uiOutput("callHistory", class = "callHistory")
+                  uiOutput("callHistory", class = "callHistory"),
                 )
               )
             )
           )
         )
       ),
+      ## References ----
       tabItem(
         tabName = "references",
         h2("References"),
@@ -139,26 +154,23 @@ ui <- dashboardPage(
   )
 )
 
+# Server ----
 server <- function(input, output, session) {
   # Variables
   activeBtn <- NA
-  player <- NA
-  opponent <- NA
-  scoreMatrix <-
-    matrix(
-      data = rep.int(0, times = TILE_COUNT),
-      nrow = GRID_SIZE,
-      ncol = GRID_SIZE
-    )
+  tileset <- reactiveVal()
   gameProgress <- reactiveVal(FALSE)
+  winState <- reactiveVal(FALSE)
   isHost <- FALSE
 
   observe({
     query <- parseQueryString(session$clientData$url_search)
 
     if (!is.null(query$hostKey) && query$hostKey == "spooky" || isLocal()) {
-      isHost <- TRUE
+      isHost <<- TRUE
       show("hostPanel")
+      #hide("playRegion")
+      #hide("playerPanel")
     }
   })
 
@@ -200,13 +212,54 @@ server <- function(input, output, session) {
     id <- paste0("grid-", coords$row, "-", coords$col)
     shinyjs::removeClass(id = id, "selected")
   }
-
-  .score <- function(score, tile, value) {
-    i <- .tileCoordinates(tile)
-
-    score[i$row, i$col] <- value
-
-    return(score)
+  
+  .checkCols <- function() {
+    match <- FALSE
+    count <- 0
+    
+    for(i in 1:GRID_SIZE) {
+      tile <- paste0(BINGO[i], "-", tileset()[,GRID_SIZE][i])
+      if(match(callHistory(), tile)) {
+        count <- count + 1
+      }
+    }
+    
+    match <- count == GRID_SIZE
+    
+    return(match)
+  }
+  
+  .checkRows <- function() {
+    # check row
+    # for tileset[GRID_SIZE[n],]
+    match <- FALSE
+    
+    return(match)
+  }
+  
+  .checkDiagonals <- function() {
+    match <- FALSE
+    
+    return(match) 
+  }
+  
+  .checkCorners <- function() {
+    match <- FALSE
+    
+    return(match)
+  }
+  
+  .checkState <- function() {
+    col <- .checkCols()
+    row <- .checkRows()
+    diag <- .checkDiagonals()
+    corners <- .checkCorners()
+    
+    if(col || row || diag || corners) {
+      return(TRUE)
+    } else {
+      return(FALSE)
+    }
   }
 
   .gameCheck <- function(mat) {
@@ -249,28 +302,24 @@ server <- function(input, output, session) {
 
   .gameReset <- function() {
     lapply(1:TILE_COUNT, .btnReset)
-
-    scoreMatrix <<-
-      matrix(
-        data = rep.int(0, times = TILE_COUNT),
-        nrow = GRID_SIZE,
-        ncol = GRID_SIZE
-      )
-    gameProgress <- FALSE
+    gameProgress(FALSE)
     activeBtn <- NA
+    winState(NA)
   }
 
   .generateTileset <- function() {
-    replicate(GRID_SIZE, sample(x = TILES, size = GRID_SIZE, replace = FALSE))
+    set <- replicate(GRID_SIZE, sample(x = TILES, size = GRID_SIZE, replace = FALSE))
+    colnames(set) <- BINGO
+    return(set)
   }
 
   .newCard <- function() {
-    tileset <- .generateTileset()
+    tileset(.generateTileset())
     sapply(1:GRID_SIZE, function(row) {
       sapply(1:GRID_SIZE, function(column) {
         id <- paste0("grid-", row, "-", column)
         if (id != CENTER_TILE) {
-          tile <- tileset[row, column]
+          tile <- tileset()[row, column]
           shinyjs::removeClass(id = id, class = paste(TILES))
           shinyjs::addClass(id = id, class = tile)
         }
@@ -298,13 +347,11 @@ server <- function(input, output, session) {
   output$gameBoard <- renderUI({
     board <- list()
     index <- 1
-
-    tileset <- .generateTileset()
-
+    tileset(.generateTileset())
     sapply(1:GRID_SIZE, function(row) {
       sapply(1:GRID_SIZE, function(column) {
         id <- paste0("grid-", row, "-", column)
-        tile <- tileset[row, column]
+        tile <- tileset()[row, column]
 
         classes <- "grid-fill"
 
@@ -342,101 +389,86 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$call, {
-    col <- sample(c("B", "I", "N", "G", "O"), 1)
-    tile <- list(span(class = paste(col, "icon", sample(TILES, 1))))
-
+    # TODO: INSTEAD OF SAMPLING LISTS EACH TIME
+    #       SAMPLE POOL OF AVAILABLE OPTIONS
+    #       THIS PREVENTS REPEATS
+    currentCall <- sample(na.omit(TILE_POOL), 1)
+    index <- match(currentCall, TILE_POOL)
+    TILE_POOL[index] <<- NA
+    callSplit <- str_split(currentCall, "-")[[1]]
+    col <- callSplit[1] 
+    tile <- callSplit[2]
+    
+    ui <- list(span(class = paste(col, "icon", tile)))
+    
     # Insert the latest item to the beginning of the list
-    callHistory(append(callHistory(), tile, after = 0))
+    callHistory(append(callHistory(), paste0(col, "-", tile), after = 0))
+    callHistoryUI(append(callHistoryUI(), ui, after = 0))
   })
   
   observe({
-    if(length(callHistory()) > 0){
+    if(length(callHistory()) > 0) {
       show("history")
       output$callHistory <- renderUI({
-        callHistory()
+        callHistoryUI()
       })
+      print(callHistory())
+    }
+  })
+  
+  observe({
+    if(length(declaredBingo()) > 0) {
+      show("declared")
+      output$declaredBingo <- renderUI({
+        declaredBingo()
+      }) 
+    } else {
+      hide("declared")
     }
   })
 
-  # Program Submit Button
-  observeEvent(input$submit, {
-    index <- .tileIndex(activeBtn)
-
-    updateButton(
-      session = session,
-      inputId = activeBtn,
-      label = player,
-      disabled = TRUE
-    )
-
-    scoreMatrix <<- .score(scoreMatrix, activeBtn, 1)
-
-    # Check for game over states
-    .gameState <- .gameCheck(scoreMatrix)
-    completion <- ifelse(.gameState == "continue", FALSE, TRUE)
-
-    if (.gameState == "win") {
-      confirmSweetAlert(
-        session = session,
-        inputId = "endGame",
-        title = "You Win!",
-        text = "You've filled either a row, a column, or a main diagonal. Start over and play a new game.",
-        btn_labels = "Start Over"
-      )
-    } else if (.gameState == "lose") {
-      confirmSweetAlert(
-        session = session,
-        inputId = "endGame",
-        title = "You lose :(",
-        text = "Take a moment to review the concepts and then try again.",
-        btn_labels = "Start Over"
-      )
-    } else if (.gameState == "draw") {
-      confirmSweetAlert(
-        session = session,
-        inputId = "endGame",
-        title = "Draw!",
-        text = "Take a moment to review the concepts and then try again.",
-        btn_labels = "Start Over"
-      )
-    }
-    updateButton(
-      session = session,
-      inputId = "submit",
-      disabled = TRUE
-    )
-  })
-
-  observeEvent(input$pages,
-    {
-      if (input$pages == "game") {
-        if (!gameProgress) {
-          shinyalert(
-            title = "Player Select",
-            text = "Select whether you want to play as O or X.",
-            showConfirmButton = TRUE,
-            confirmButtonText = "Play as X",
-            showCancelButton = TRUE,
-            cancelButtonText = "Play as O"
-          )
-          gameProgress <<- TRUE
-        }
+  observeEvent(input$pages, {
+    if (input$pages == "game") {
+      #&& !isHost
+      if (!gameProgress()) {
+        shinyalert(
+          inputId = "player",
+          title = "Player",
+          text = "Please enter your name:",
+          type = "input",
+          showConfirmButton = TRUE,
+          confirmButtonText = "Play",
+          showCancelButton = FALSE,
+          closeOnClickOutside = FALSE,
+          closeOnEsc = FALSE
+        )
       }
-    },
-    ignoreInit = TRUE
-  )
+    }
+  }, ignoreInit = FALSE)
+  
+  observeEvent(input$bingo, {
+    shinyalert(
+      inputId = "bingoAlert",
+      title = "Declare BINGO?",
+      showConfirmButton = TRUE,
+      showCancelButton = TRUE,
+      confirmButtonText = "Yes",
+      cancelButtonText = "No"
+    )
+  })
+  
+  observeEvent(input$bingoAlert, {
+    if(input$bingoAlert) {
+      print(tileset())
+      winState(.checkState())
+      print(winState())
+      
+      declaredBingo(append(declaredBingo(), list("player" = input$player, "win" = winState())))
+    }
+  })
 
   observeEvent(input$endGame, {
     .gameReset()
-  })
-
-  observeEvent(input$shinyalert, {
-    player <<- "X"
-    opponent <<- "O"
-
-    output$player <- renderUI({
-      return(paste0("You are playing as ", player, "."))
-    })
   })
 }
 
