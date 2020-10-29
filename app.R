@@ -108,12 +108,15 @@ ui <- dashboardPage(
               class = "flex-panel sm-reverse",
               div(
                 id = "playerPanel",
-                h3("Rules"),
+                h3("How to Play:"),
                 tags$ul(
-                  tags$li("You may select a new card until a marker is placed."),
-                  tags$li("Match", GRID_SIZE, "in a row or column."),
-                  tags$li("Diagonals (corner to corner) and four corners also count."),
-                  tags$li("Click", tags$strong("BINGO"), "when a win condition is met.")
+                  tags$li("If the", tags$strong("Host"), "calls an item on your card, click the matching tile to place down a marker.",
+                          "Markers can be cleared by using the 'Clear Card' button; the game will not be reset."),
+                  tags$li("You may choose a new card using the 'New Card' button", tags$strong("prior"), "to placing down your first marker."),
+                  tags$li("To win, mark", tags$strong(GRID_SIZE), "tiles in a column or row,", 
+                          "diagonals (corner to corner), or the four corners. The", tags$strong("free"), "tile can be included in a matching set."),
+                  tags$li("Click", tags$strong("BINGO"), "when a win condition is met."),
+                  tags$li("Wait for the", tags$strong("Host"), "to review your card.")
                 ),
                 bsButton(inputId = "clearCard", label = "Clear Card", icon = icon("refresh")),
                 bsButton(inputId = "newCard", label = "New Card", icon = icon("gift")),
