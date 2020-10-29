@@ -104,7 +104,8 @@ ui <- dashboardPage(
                 ),
                 bsButton(inputId = "reset", label = "Reset", icon = icon("refresh")),
                 bsButton(inputId = "newCard", label = "New Card", icon = icon("gift")),
-                bsButton(inputId = "bingo", label = "BINGO", icon = icon("hand-stop-o")),
+                bsButton(inputId = "bingo", label = "BINGO", icon = icon("hand-stop-o"), disabled = TRUE),
+                br(),
                 br()
               ),
               hidden(
@@ -407,7 +408,12 @@ server <- function(input, output, session) {
       
       # Insert the latest item to the beginning of the list
       callHistory(append(callHistory(), paste0(col, "-", tile), after = 0))
-      callHistoryUI(append(callHistoryUI(), ui, after = 0))  
+      callHistoryUI(append(callHistoryUI(), ui, after = 0))
+      
+      # Earliest possible win condition
+      if(length(callHistory()) >= (GRID_SIZE - 1)) {
+        shinyBS::updateButton(session, inputId = "bingo", disabled = FALSE)
+      }
     } else {
       gameOver(TRUE)
     }
