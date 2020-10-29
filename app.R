@@ -59,37 +59,42 @@ ui <- dashboardPage(
         fluidRow(
           div(
             class = "col-sm-6",
-            div(
-              class = "bingo-header",
-              div("B"), div("I"), div("N"), div("G"), div("O")
-            ),
-            uiOutput("gameBoard", class = "game-board")
+            div(class = "full-block",
+              div(
+                class = "bingo-header",
+                div("B"), div("I"), div("N"), div("G"), div("O")
+              ),
+              uiOutput("gameBoard", class = "game-board")  
+            )
           ),
           div(
             class = "col-sm-6",
-            div(
-              h3("Rules"),
-              tags$ul(
-                tags$li("You may select a new card until a marker is placed."),
-                tags$li("Match", GRID_SIZE, "in a row/column."),
-                tags$li("Diagonals (corner to corner) and four corners also count."),
-                tags$li("Click", tags$strong("BINGO"), "when a win condition is met.")
+            div(class = "flex-panel sm-reverse",
+              div(
+                h3("Rules"),
+                tags$ul(
+                  tags$li("You may select a new card until a marker is placed."),
+                  tags$li("Match", GRID_SIZE, "in a row/column."),
+                  tags$li("Diagonals (corner to corner) and four corners also count."),
+                  tags$li("Click", tags$strong("BINGO"), "when a win condition is met.")
+                ),
+                bsButton(inputId = "reset", label = "Reset", icon = icon("refresh")),
+                bsButton(inputId = "newCard", label = "New Card", icon = icon("gift")),
+                bsButton(inputId = "bingo", label = "BINGO", icon = icon("hand-stop-o")),
+                br()
               ),
-              bsButton(inputId = "reset", label = "Reset", icon = icon("refresh")),
-              bsButton(inputId = "newCard", label = "New Card", icon = icon("gift")),
-              bsButton(inputId = "bingo", label = "BINGO", icon = icon("hand-stop-o")),
               hidden(
                 div(
                   id = "hostPanel",
                   br(),
                   h3("Host Controls"),
-                  bsButton("call", label = "Call")
+                  bsButton("call", label = "Call"),
+                  br()
                 )
               ),
               hidden(
                 div(
                   id = "history",
-                  br(),
                   h3("Call History"),
                   uiOutput("callHistory", class = "callHistory")
                 )
@@ -337,16 +342,20 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$call, {
-    show("history")
     col <- sample(c("B", "I", "N", "G", "O"), 1)
     tile <- list(span(class = paste(col, "icon", sample(TILES, 1))))
 
     # Insert the latest item to the beginning of the list
     callHistory(append(callHistory(), tile, after = 0))
   })
-
-  output$callHistory <- renderUI({
-    callHistory()
+  
+  observe({
+    if(length(callHistory()) > 0){
+      show("history")
+      output$callHistory <- renderUI({
+        callHistory()
+      })
+    }
   })
 
   # Program Submit Button

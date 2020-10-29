@@ -1,6 +1,29 @@
+.content {
+  padding: 1.5rem !important;
+}
+
+.full-block {
+  min-height: 100vw;
+}
+
+.game-board {
+  min-height: unset !important;
+}
+
 #shiny-tab-game, h3 {
   font-family: 'Underdog', cursive;
   color: #2C2E36;
+}
+
+.flex-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 576px) {
+  .flex-panel.sm-reverse {
+    flex-direction: column-reverse;
+  }
 }
 
 .bingo-header {
@@ -8,7 +31,7 @@
     grid-template-columns: repeat(5, 1fr);
     grid-column-gap: 0;
     width: 100%;
-    max-width: 540px;
+    max-width: 768px;
     height: auto;
     border-radius: 0.5rem;
     text-align: center;
@@ -18,7 +41,8 @@
 }
 
 .grid-board.grid-5x5 {
-  max-width: 540px !important;
+  min-height: fit-content;
+  max-width: 768px !important;
 }
 
 .selected::before {
@@ -35,7 +59,8 @@
 
 .skin-yellow .grid-board {
   background-color: white !important;
-  border: 0.25rem solid #2C2E36 !important;
+  border: 2px solid #2C2E36 !important;
+  border-radius: 0.25rem;
 }
 
 .skin-yellow .grid-tile button {
@@ -48,9 +73,9 @@
 }
 
 .grid-tile .btn {
-  background-image: unset;
-  background-size: cover;
   background-repeat: no-repeat;
+  background-size: calc(100% - 0.5rem);
+  background-position: 50%;
 }
 
 .callHistory {
