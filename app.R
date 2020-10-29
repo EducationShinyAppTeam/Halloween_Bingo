@@ -12,12 +12,13 @@ TILES <- c(
   "skull", "spider", "vampire", "werewolf", "witch"
 )
 BINGO <- c("B", "I", "N", "G", "O")
-TILE_POOL <<- paste(sapply(TILES, function(tile) { paste0(BINGO, "-", tile) }))
+TILE_POOL <- paste(sapply(TILES, function(tile) { paste0(BINGO, "-", tile) }))
 CENTER_TILE <- paste0("grid-", GRID_SIZE %/% 2 + 1, "-", GRID_SIZE %/% 2 + 1)
-APP_TITLE <<- "Halloween Bingo"
-callHistory <<- reactiveVal(c())
-callHistoryUI <<- reactiveVal(list())
-declaredBingo <<- reactiveVal(list())
+APP_TITLE <- "Halloween Bingo"
+callHistory <- reactiveVal(c())
+callHistoryUI <- reactiveVal(list())
+declaredBingo <- reactiveVal(list())
+gameOver <- reactiveVal(FALSE)
 
 ui <- dashboardPage(
   skin = "yellow",
@@ -389,21 +390,27 @@ server <- function(input, output, session) {
   })
 
   observeEvent(input$call, {
-    # TODO: INSTEAD OF SAMPLING LISTS EACH TIME
-    #       SAMPLE POOL OF AVAILABLE OPTIONS
-    #       THIS PREVENTS REPEATS
-    currentCall <- sample(na.omit(TILE_POOL), 1)
-    index <- match(currentCall, TILE_POOL)
-    TILE_POOL[index] <<- NA
-    callSplit <- str_split(currentCall, "-")[[1]]
-    col <- callSplit[1] 
-    tile <- callSplit[2]
-    
-    ui <- list(span(class = paste(col, "icon", tile)))
-    
-    # Insert the latest item to the beginning of the list
-    callHistory(append(callHistory(), paste0(col, "-", tile), after = 0))
-    callHistoryUI(append(callHistoryUI(), ui, after = 0))
+    # INSTEAD OF SAMPLING LISTS EACH TIME
+    # SAMPLE POOL OF AVAILABLE OPTIONS
+    # THIS PREVENTS REPEATS
+    cleanPool <- na.omit(TILE_POOL)
+  
+    if(length(cleanPool) > 0) {
+      currentCall <- sample(na.omit(cleanPool), 1)
+      index <- match(currentCall, TILE_POOL)
+      TILE_POOL[index] <<- NA
+      callSplit <- str_split(currentCall, "-")[[1]]
+      col <- callSplit[1] 
+      tile <- callSplit[2]
+      
+      ui <- list(span(class = paste(col, "icon", tile)))
+      
+      # Insert the latest item to the beginning of the list
+      callHistory(append(callHistory(), paste0(col, "-", tile), after = 0))
+      callHistoryUI(append(callHistoryUI(), ui, after = 0))  
+    } else {
+      gameOver(TRUE)
+    }
   })
   
   observe({
@@ -412,7 +419,7 @@ server <- function(input, output, session) {
       output$callHistory <- renderUI({
         callHistoryUI()
       })
-      print(callHistory())
+      #print(callHistory())
     }
   })
   
@@ -424,6 +431,16 @@ server <- function(input, output, session) {
       }) 
     } else {
       hide("declared")
+    }
+  })
+  
+  observe({
+    if(gameOver()) {
+      shinyalert(
+        inputId = "gameOver",
+        title = "Game Over!",
+        type = "error"
+      )  
     }
   })
 
