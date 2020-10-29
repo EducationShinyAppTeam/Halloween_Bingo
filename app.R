@@ -5,6 +5,7 @@ library(shinyalert)
 library(shinyBS)
 library(shinyWidgets)
 
+APP_TITLE <<- "Halloween Bingo"
 GRID_SIZE <<- 5
 TILE_COUNT <<- GRID_SIZE^2
 TILES <<- c(
@@ -17,7 +18,6 @@ TILE_POOL <<- paste(sapply(TILES, function(tile) { paste0(BINGO, "-", tile) }))
 POOL_SIZE <<- reactiveVal()
 CENTER <<- GRID_SIZE %/% 2 + 1
 CENTER_TILE <<- paste0("grid-", CENTER, "-", CENTER)
-APP_TITLE <<- "Halloween Bingo"
 callHistory <<- reactiveVal(c())
 callHistoryUI <<- reactiveVal(list())
 declaredBingo <<- reactiveVal(list())
@@ -171,9 +171,12 @@ server <- function(input, output, session) {
   tileset <- reactiveVal()
   gameProgress <- reactiveVal(FALSE)
   winState <- reactiveVal(FALSE)
-  isHost <- FALSE
+  isHost <- reactiveVal(FALSE)
   
   .init <- function() {
+    
+    .checkHost()
+    
     tileset(.generateTileset())
     
     sapply(1:GRID_SIZE, function(row) {
@@ -181,11 +184,25 @@ server <- function(input, output, session) {
         id <- paste0("grid-", row, "-", column)
         observeEvent(session$input[[id]], {
           .boardBtn(id)
+          if(!gameProgress()) {
+            gameProgress(TRUE)
+          }
         }, ignoreInit = TRUE)   
       })
     })
+  }
+  
+  .checkHost <- function() {
+    query <- parseQueryString(session$clientData$url_search)
     
-    print('init')
+    if (!is.null(query$hostKey) && query$hostKey == "2spooky" || isLocal()) {
+      isHost(TRUE)
+      show("hostPanel")
+      hide("playRegion")
+      hide("playerPanel")
+      POOL_SIZE(length(TILE_POOL))
+      output$remainingCalls <- renderText(POOL_SIZE())
+    }
   }
 
   # Helper Functions
@@ -295,6 +312,7 @@ server <- function(input, output, session) {
   
   .sessionReset <- function() {
     TILE_POOL <<- paste(sapply(TILES, function(tile) { paste0(BINGO, "-", tile) }))
+    POOL_SIZE(length(TILE_POOL))
     callHistory(c())
     callHistoryUI(list())
     declaredBingo(list())
@@ -328,20 +346,7 @@ server <- function(input, output, session) {
 
   .newCard <- function() {
     lapply(1:TILE_COUNT, .btnReset)
-    set <- .generateTileset()
-    tileset(set)
-    
-    # sapply(1:GRID_SIZE, function(row) {
-    #   sapply(1:GRID_SIZE, function(column) {
-    #     id <- paste0("grid-", row, "-", column)
-    #     if (id != CENTER_TILE) {
-    #       tile <- set[row, column]
-    #       shinyjs::removeCssClass(id = id, class = "selected")
-    #       shinyjs::removeCssClass(id = id, class = paste(TILES))
-    #       shinyjs::addCssClass(id = id, class = tile)
-    #     }
-    #   })
-    # })
+    tileset(.generateTileset())
   }
   
   .printCard <- function() {
@@ -359,17 +364,6 @@ server <- function(input, output, session) {
   # Event Observers ----
   observe({
     .init()
-  })
-  
-  observe({
-    query <- parseQueryString(session$clientData$url_search)
-    
-    if (!is.null(query$hostKey) && query$hostKey == "2spooky" || isLocal()) {
-      isHost <<- TRUE
-      show("hostPanel")
-      #hide("playRegion")
-      #hide("playerPanel")
-    }
   })
 
   # Program the Reset Button
@@ -429,11 +423,11 @@ server <- function(input, output, session) {
     # SAMPLE POOL OF AVAILABLE OPTIONS
     # THIS PREVENTS REPEATS
     cleanPool <- na.omit(TILE_POOL)
-    POOL_SIZE(length(cleanPool))
     
     if(length(callHistory()) == 0) {
       callHistory("N-free")  
     }
+    
     if(length(cleanPool) > 0) {
       currentCall <- sample(na.omit(cleanPool), 1)
       index <- match(currentCall, TILE_POOL)
@@ -447,11 +441,10 @@ server <- function(input, output, session) {
       # Insert the latest item to the beginning of the list
       callHistory(append(callHistory(), paste0(col, "-", tile), after = 0))
       callHistoryUI(append(callHistoryUI(), ui, after = 0))
+      POOL_SIZE(length(cleanPool) - 1)
     } else {
       gameOver(TRUE)
     }
-    
-    output$remainingCalls <- renderText(POOL_SIZE() - 1)
   }, ignoreInit = TRUE)
   
   observe({
@@ -470,7 +463,15 @@ server <- function(input, output, session) {
   
   observe({
     if(signalReset()) {
-      .gameReset()  
+      signalReset(FALSE)
+      .gameReset()
+      .newCard()
+      shinyalert(
+        inputId = "gameOver",
+        title = "New Game",
+        text = "The Host has reset the game.",
+        type = "warning"
+      )
     }
   })
   
@@ -498,7 +499,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$pages, {
     if (input$pages == "game") {
-      if (!gameProgress() && !isHost) {
+      if (!gameProgress() && !isHost()) {
         shinyalert(
           inputId = "player",
           title = "Player",
@@ -523,7 +524,7 @@ server <- function(input, output, session) {
       confirmButtonText = "Yes",
       cancelButtonText = "No"
     )
-  })
+  }, ignoreInit = TRUE)
   
   observeEvent(input$bingoAlert, {
     if(input$bingoAlert) {
@@ -539,11 +540,11 @@ server <- function(input, output, session) {
         )
       )
     }
-  })
+  }, ignoreInit = TRUE)
   
   observeEvent(input$sessionReset, {
     .sessionReset()
-  })
+  }, ignoreInit = TRUE)
 }
 
 boastApp(ui = ui, server = server)
