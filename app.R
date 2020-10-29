@@ -75,13 +75,13 @@ ui <- dashboardPage(
                 p(),
                 h3("Remaining"),
                 textOutput("remainingCalls"),
-                br()
-              ),
-              hidden(
-                div(
-                  id = "declared",
-                  h3("Declared"),
-                  uiOutput("declaredBingo", class = "declaredBingo")
+                br(),
+                hidden(
+                  div(
+                    id = "declared",
+                    h3("Declared"),
+                    uiOutput("declaredBingo", class = "declaredBingo")
+                  )
                 )
               )
             ),
@@ -90,7 +90,7 @@ ui <- dashboardPage(
               class = "full-block",
               div(
                 class = "bingo-header",
-                div("B"), div("I"), div("N"), div("G"), div("O")
+                div(class = "B"), div(class = "I"), div(class = "N"), div(class = "G"), div(class = "O")
               ),
               uiOutput("gameBoard", class = "game-board")
             )
@@ -294,6 +294,7 @@ server <- function(input, output, session) {
     callHistoryUI(list())
     declaredBingo(list())
     gameOver(FALSE)
+    gameProgress(FALSE)
     updateButton(session, inputId = "newCard", disabled = FALSE)
     updateButton(session, inputId = "bingo", disabled = TRUE)
   }
