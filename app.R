@@ -99,7 +99,7 @@ ui <- dashboardPage(
                 h3("Rules"),
                 tags$ul(
                   tags$li("You may select a new card until a marker is placed."),
-                  tags$li("Match", GRID_SIZE, "in a row/column."),
+                  tags$li("Match", GRID_SIZE, "in a row or column."),
                   tags$li("Diagonals (corner to corner) and four corners also count."),
                   tags$li("Click", tags$strong("BINGO"), "when a win condition is met.")
                 ),
@@ -177,7 +177,6 @@ server <- function(input, output, session) {
     }
   })
 
-
   # Helper Functions
   .tileCoordinates <- function(tile = NULL, index = NULL) {
     row <- -1
@@ -217,39 +216,54 @@ server <- function(input, output, session) {
   }
   
   .checkCols <- function() {
-    match <- FALSE
-    count <- 0
     
     for(i in 1:GRID_SIZE) {
-      tile <- paste0(BINGO[i], "-", tileset()[,GRID_SIZE][i])
-      if(match(callHistory(), tile)) {
-        count <- count + 1
+      tile <- paste0(BINGO[i], "-", tileset()[,i])
+      matches <- match(callHistory(), tile)
+      count <- length(na.omit(matches))
+      
+      if(count == GRID_SIZE) {
+        return(TRUE)
       }
     }
     
-    match <- count == GRID_SIZE
-    
-    return(match)
+    return(FALSE)
   }
   
   .checkRows <- function() {
-    # check row
-    # for tileset[GRID_SIZE[n],]
-    match <- FALSE
+    for(i in 1:GRID_SIZE) {
+      tile <- paste0(BINGO[i], "-", tileset()[i,])
+      matches <- match(callHistory(), tile)
+      count <- length(na.omit(matches))
+      
+      if(count == GRID_SIZE) {
+        return(TRUE)
+      }
+    }
     
-    return(match)
+    return(FALSE)
   }
   
   .checkDiagonals <- function() {
     match <- FALSE
     
+    # TODO: CHECK DIAG
+    
     return(match) 
   }
   
   .checkCorners <- function() {
-    match <- FALSE
+
+    corners <- c(
+      paste0(BINGO[1], "-", tileset()[1,1]),                         # TL
+      paste0(BINGO[1], "-", tileset()[1, GRID_SIZE]),                # TR
+      paste0(BINGO[GRID_SIZE], "-", tileset()[GRID_SIZE, 1]),        # BL
+      paste0(BINGO[GRID_SIZE], "-", tileset()[GRID_SIZE, GRID_SIZE]) # BR
+    )
     
-    return(match)
+    matches <- match(callHistory(), corners)
+    
+    ifelse(length(na.omit(matches) == 4), TRUE, FALSE)
   }
   
   .checkState <- function() {
@@ -258,11 +272,7 @@ server <- function(input, output, session) {
     diag <- .checkDiagonals()
     corners <- .checkCorners()
     
-    if(col || row || diag || corners) {
-      return(TRUE)
-    } else {
-      return(FALSE)
-    }
+    ifelse(col || row || diag || corners, TRUE, FALSE)
   }
   
   .sessionReset <- function() {
