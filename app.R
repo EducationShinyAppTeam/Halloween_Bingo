@@ -69,6 +69,7 @@ ui <- dashboardPage(
                 id = "hostPanel",
                 h3("Host Controls"),
                 bsButton("call", label = "Call"),
+                bsButton("sessionReset", label = "Session Reset", style = "danger"),
                 br()
               ),
               hidden(
@@ -263,33 +264,43 @@ server <- function(input, output, session) {
       return(FALSE)
     }
   }
-
-  .gameCheck <- function(mat) {
-    rows <- rowSums(mat)
-    cols <- colSums(mat)
-
-    if (GRID_SIZE > 1) {
-      mainD <- sum(diag(mat))
-      rotated <- apply(t(mat), 2, rev)
-      offD <- sum(diag(rotated))
-
-      if (GRID_SIZE %in% rows ||
-        GRID_SIZE %in% cols ||
-        mainD == GRID_SIZE || offD == GRID_SIZE) {
-        return("win")
-      } else if (-GRID_SIZE %in% rows ||
-        -GRID_SIZE %in% cols == 1 ||
-        mainD == -GRID_SIZE || offD == -GRID_SIZE) {
-        return("lose")
-      } else if (any(mat == 0)) {
-        return("continue")
-      } else {
-        return("draw")
-      }
-    } else {
-      ifelse(rows == 1 && rows != 0, return("win"), return("lose"))
-    }
+  
+  .sessionReset <- function() {
+    TILE_POOL <<- paste(sapply(TILES, function(tile) { paste0(BINGO, "-", tile) }))
+    callHistory(c())
+    callHistoryUI(list())
+    declaredBingo(list())
+    gameOver(FALSE)
+    updateButton(session, inputId = "newCard", disabled = FALSE)
+    updateButton(session, inputId = "bingo", disabled = TRUE)
   }
+
+  # .gameCheck <- function(mat) {
+  #   rows <- rowSums(mat)
+  #   cols <- colSums(mat)
+  # 
+  #   if (GRID_SIZE > 1) {
+  #     mainD <- sum(diag(mat))
+  #     rotated <- apply(t(mat), 2, rev)
+  #     offD <- sum(diag(rotated))
+  # 
+  #     if (GRID_SIZE %in% rows ||
+  #       GRID_SIZE %in% cols ||
+  #       mainD == GRID_SIZE || offD == GRID_SIZE) {
+  #       return("win")
+  #     } else if (-GRID_SIZE %in% rows ||
+  #       -GRID_SIZE %in% cols == 1 ||
+  #       mainD == -GRID_SIZE || offD == -GRID_SIZE) {
+  #       return("lose")
+  #     } else if (any(mat == 0)) {
+  #       return("continue")
+  #     } else {
+  #       return("draw")
+  #     }
+  #   } else {
+  #     ifelse(rows == 1 && rows != 0, return("win"), return("lose"))
+  #   }
+  # }
 
   .boardBtn <- function(tile) {
     index <- .tileIndex(tile)
@@ -441,7 +452,6 @@ server <- function(input, output, session) {
   })
   
   observe({
-    # TODO: IF GAME OVER ALL REACTIVE VALUES SHOULD RESET
     if(gameOver()) {
       shinyalert(
         inputId = "gameOver",
@@ -490,6 +500,10 @@ server <- function(input, output, session) {
       
       declaredBingo(append(declaredBingo(), list("player" = input$player, "win" = winState())))
     }
+  })
+  
+  observeEvent(input$sessionReset, {
+    .sessionReset()
   })
 
   observeEvent(input$endGame, {
