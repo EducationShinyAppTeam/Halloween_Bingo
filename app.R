@@ -13,6 +13,7 @@ TILES <<- c(
 )
 BINGO <<- c("B", "I", "N", "G", "O")
 TILE_POOL <<- paste(sapply(TILES, function(tile) { paste0(BINGO, "-", tile) }))
+POOL_SIZE <<- reactiveVal()
 CENTER <<- GRID_SIZE %/% 2 + 1
 CENTER_TILE <<- paste0("grid-", CENTER, "-", CENTER)
 APP_TITLE <<- "Halloween Bingo"
@@ -71,6 +72,9 @@ ui <- dashboardPage(
                 h3("Host Controls"),
                 bsButton("call", label = "Call"),
                 bsButton("sessionReset", label = "Session Reset", style = "danger"),
+                p(),
+                h3("Remaining"),
+                textOutput("remainingCalls"),
                 br()
               ),
               hidden(
@@ -173,8 +177,8 @@ server <- function(input, output, session) {
     if (!is.null(query$hostKey) && query$hostKey == "spooky" || isLocal()) {
       isHost <<- TRUE
       show("hostPanel")
-      #hide("playRegion")
-      #hide("playerPanel")
+      hide("playRegion")
+      hide("playerPanel")
     }
   })
 
@@ -293,33 +297,6 @@ server <- function(input, output, session) {
     updateButton(session, inputId = "bingo", disabled = TRUE)
   }
 
-  # .gameCheck <- function(mat) {
-  #   rows <- rowSums(mat)
-  #   cols <- colSums(mat)
-  # 
-  #   if (GRID_SIZE > 1) {
-  #     mainD <- sum(diag(mat))
-  #     rotated <- apply(t(mat), 2, rev)
-  #     offD <- sum(diag(rotated))
-  # 
-  #     if (GRID_SIZE %in% rows ||
-  #       GRID_SIZE %in% cols ||
-  #       mainD == GRID_SIZE || offD == GRID_SIZE) {
-  #       return("win")
-  #     } else if (-GRID_SIZE %in% rows ||
-  #       -GRID_SIZE %in% cols == 1 ||
-  #       mainD == -GRID_SIZE || offD == -GRID_SIZE) {
-  #       return("lose")
-  #     } else if (any(mat == 0)) {
-  #       return("continue")
-  #     } else {
-  #       return("draw")
-  #     }
-  #   } else {
-  #     ifelse(rows == 1 && rows != 0, return("win"), return("lose"))
-  #   }
-  # }
-
   .boardBtn <- function(tile) {
     index <- .tileIndex(tile)
 
@@ -421,6 +398,8 @@ server <- function(input, output, session) {
     # SAMPLE POOL OF AVAILABLE OPTIONS
     # THIS PREVENTS REPEATS
     cleanPool <- na.omit(TILE_POOL)
+    POOL_SIZE(length(cleanPool))
+    
     if(length(callHistory()) == 0) {
       callHistory("N-free")  
     }
@@ -438,13 +417,15 @@ server <- function(input, output, session) {
       callHistory(append(callHistory(), paste0(col, "-", tile), after = 0))
       callHistoryUI(append(callHistoryUI(), ui, after = 0))
       
-      # Earliest possible win condition
-      if(length(callHistory()) >= (GRID_SIZE - 1)) {
+      # Earliest possible win condition (includes free space)
+      if(length(callHistory()) >= GRID_SIZE) {
         shinyBS::updateButton(session, inputId = "bingo", disabled = FALSE)
       }
     } else {
       gameOver(TRUE)
     }
+    
+    output$remainingCalls <- renderText(POOL_SIZE() - 1)
   })
   
   observe({
@@ -480,8 +461,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$pages, {
     if (input$pages == "game") {
-      # TODO: PUT THIS BACK -> && !isHost
-      if (!gameProgress()) {
+      if (!gameProgress() && !isHost) {
         shinyalert(
           inputId = "player",
           title = "Player",
