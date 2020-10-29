@@ -1,3 +1,4 @@
+library(reactlog)
 library(boastUtils)
 library(shinyjs)
 library(shinyalert)
@@ -21,6 +22,7 @@ callHistory <<- reactiveVal(c())
 callHistoryUI <<- reactiveVal(list())
 declaredBingo <<- reactiveVal(list())
 gameOver <<- reactiveVal(FALSE)
+signalReset <<- reactiveVal(FALSE)
 
 ui <- dashboardPage(
   skin = "yellow",
@@ -108,7 +110,7 @@ ui <- dashboardPage(
                   tags$li("Diagonals (corner to corner) and four corners also count."),
                   tags$li("Click", tags$strong("BINGO"), "when a win condition is met.")
                 ),
-                bsButton(inputId = "reset", label = "Clear Card", icon = icon("refresh")),
+                bsButton(inputId = "clearCard", label = "Clear Card", icon = icon("refresh")),
                 bsButton(inputId = "newCard", label = "New Card", icon = icon("gift")),
                 bsButton(inputId = "bingo", label = "BINGO", icon = icon("hand-stop-o"), disabled = TRUE),
                 br(),
@@ -166,22 +168,25 @@ ui <- dashboardPage(
 # Server ----
 server <- function(input, output, session) {
   # Variables
-  activeBtn <- NA
   tileset <- reactiveVal()
   gameProgress <- reactiveVal(FALSE)
   winState <- reactiveVal(FALSE)
   isHost <- FALSE
-
-  observe({
-    query <- parseQueryString(session$clientData$url_search)
-
-    if (!is.null(query$hostKey) && query$hostKey == "2spooky" || isLocal()) {
-      isHost <<- TRUE
-      show("hostPanel")
-      hide("playRegion")
-      hide("playerPanel")
-    }
-  })
+  
+  .init <- function() {
+    tileset(.generateTileset())
+    
+    sapply(1:GRID_SIZE, function(row) {
+      sapply(1:GRID_SIZE, function(column) {
+        id <- paste0("grid-", row, "-", column)
+        observeEvent(session$input[[id]], {
+          .boardBtn(id)
+        }, ignoreInit = TRUE)   
+      })
+    })
+    
+    print('init')
+  }
 
   # Helper Functions
   .tileCoordinates <- function(tile = NULL, index = NULL) {
@@ -218,7 +223,7 @@ server <- function(input, output, session) {
   .btnReset <- function(index) {
     coords <- .tileCoordinates(index = index)
     id <- paste0("grid-", coords$row, "-", coords$col)
-    shinyjs::removeClass(id = id, "selected")
+    shinyjs::removeCssClass(id = id, "selected")
   }
   
   .checkCols <- function() {
@@ -293,28 +298,25 @@ server <- function(input, output, session) {
     callHistory(c())
     callHistoryUI(list())
     declaredBingo(list())
-    gameOver(FALSE)
-    gameProgress(FALSE)
-    updateButton(session, inputId = "newCard", disabled = FALSE)
-    updateButton(session, inputId = "bingo", disabled = TRUE)
+    signalReset(FALSE) # Force update
+    signalReset(TRUE)
   }
 
   .boardBtn <- function(tile) {
-    index <- .tileIndex(tile)
-
-    if (!gameProgress()) {
-      gameProgress(TRUE)
-    }
-
     # Toggle selected
-    shinyjs::toggleClass(id = tile, class = "selected")
+    shinyjs::toggleCssClass(id = tile, class = "selected")
   }
 
+  .cardReset <- function() {
+    lapply(1:TILE_COUNT, .btnReset)  
+  }
+  
   .gameReset <- function() {
-    lapply(1:TILE_COUNT, .btnReset)
+    .cardReset()
     gameProgress(FALSE)
-    activeBtn <- NA
-    winState(NA)
+    winState(FALSE)
+    updateButton(session, inputId = "newCard", disabled = FALSE)
+    updateButton(session, inputId = "bingo", disabled = TRUE)
   }
 
   .generateTileset <- function() {
@@ -325,40 +327,72 @@ server <- function(input, output, session) {
   }
 
   .newCard <- function() {
-    tileset(.generateTileset())
-    sapply(1:GRID_SIZE, function(row) {
-      sapply(1:GRID_SIZE, function(column) {
-        id <- paste0("grid-", row, "-", column)
-        if (id != CENTER_TILE) {
-          tile <- tileset()[row, column]
-          shinyjs::removeClass(id = id, class = paste(TILES))
-          shinyjs::addClass(id = id, class = tile)
-        }
-      })
-    })
+    lapply(1:TILE_COUNT, .btnReset)
+    set <- .generateTileset()
+    tileset(set)
+    
+    # sapply(1:GRID_SIZE, function(row) {
+    #   sapply(1:GRID_SIZE, function(column) {
+    #     id <- paste0("grid-", row, "-", column)
+    #     if (id != CENTER_TILE) {
+    #       tile <- set[row, column]
+    #       shinyjs::removeCssClass(id = id, class = "selected")
+    #       shinyjs::removeCssClass(id = id, class = paste(TILES))
+    #       shinyjs::addCssClass(id = id, class = tile)
+    #     }
+    #   })
+    # })
   }
+  
+  .printCard <- function() {
+    # TODO: CLEAN ME
+    HTML("<pre>", 
+       paste(tileset()[1,]), "\n",
+       paste(tileset()[2,]), "\n",
+       paste(tileset()[3,]), "\n",
+       paste(tileset()[4,]), "\n",
+       paste(tileset()[5,]),
+      "</pre>"
+    )
+  }
+  
+  # Event Observers ----
+  observe({
+    .init()
+  })
+  
+  observe({
+    query <- parseQueryString(session$clientData$url_search)
+    
+    if (!is.null(query$hostKey) && query$hostKey == "2spooky" || isLocal()) {
+      isHost <<- TRUE
+      show("hostPanel")
+      #hide("playRegion")
+      #hide("playerPanel")
+    }
+  })
 
   # Program the Reset Button
-  observeEvent(input$reset, {
-    .gameReset()
-  })
+  observeEvent(input$clearCard, {
+    .cardReset()
+  }, ignoreInit = TRUE)
 
   # Program the New Card Button
   observeEvent(input$newCard, {
     .newCard()
-  })
+  }, ignoreInit = TRUE)
 
   observeEvent(gameProgress(), {
     if (gameProgress()) {
       updateButton(session, inputId = "newCard", disabled = TRUE)
     }
-  })
+  }, ignoreInit = TRUE)
 
   # Render Game Board / Attach Observers
   output$gameBoard <- renderUI({
     board <- list()
     index <- 1
-    tileset(.generateTileset())
+
     sapply(1:GRID_SIZE, function(row) {
       sapply(1:GRID_SIZE, function(column) {
         id <- paste0("grid-", row, "-", column)
@@ -378,12 +412,7 @@ server <- function(input, output, session) {
           ),
           class = "grid-tile"
         )
-
-        observeEvent(session$input[[id]], {
-          activeBtn <<- id
-          .boardBtn(id)
-        })
-
+        
         index <<- index + 1
       })
     })
@@ -423,7 +452,7 @@ server <- function(input, output, session) {
     }
     
     output$remainingCalls <- renderText(POOL_SIZE() - 1)
-  })
+  }, ignoreInit = TRUE)
   
   observe({
     calls <- length(callHistory())
@@ -436,6 +465,12 @@ server <- function(input, output, session) {
         # Earliest possible win condition (includes free space)
         shinyBS::updateButton(session, inputId = "bingo", disabled = FALSE)
       }
+    }
+  })
+  
+  observe({
+    if(signalReset()) {
+      .gameReset()  
     }
   })
   
@@ -492,20 +527,22 @@ server <- function(input, output, session) {
   
   observeEvent(input$bingoAlert, {
     if(input$bingoAlert) {
-      print(tileset())
       winState(.checkState())
-      print(winState())
-      
-      declaredBingo(append(declaredBingo(), list("player" = input$player, "win" = winState())))
+      declaredBingo(
+        append(
+          declaredBingo(), 
+          list(
+            "player" = input$player, 
+            "win" = winState(), 
+            "board" = (.printCard())
+          )
+        )
+      )
     }
   })
   
   observeEvent(input$sessionReset, {
     .sessionReset()
-  })
-
-  observeEvent(input$endGame, {
-    .gameReset()
   })
 }
 
