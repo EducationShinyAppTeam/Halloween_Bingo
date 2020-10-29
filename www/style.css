@@ -6,7 +6,7 @@
   min-height: unset !important;
 }
 
-#shiny-tab-game, h3 {
+#shiny-tab-game, h3, .spooky {
   font-family: 'Underdog', cursive;
   color: #2C2E36;
 }

@@ -75,8 +75,13 @@ ui <- dashboardPage(
                 bsButton("call", label = "Call"),
                 bsButton("sessionReset", label = "Session Reset", style = "danger"),
                 p(),
-                h3("Remaining"),
-                textOutput("remainingCalls"),
+                hidden(
+                  div(
+                    id = "remaining",
+                    h3("Remaining"),
+                    textOutput("remainingCalls")
+                  )
+                ),
                 br(),
                 hidden(
                   div(
@@ -198,9 +203,9 @@ server <- function(input, output, session) {
     if (!is.null(query$hostKey) && query$hostKey == "2spooky" || isLocal()) {
       isHost(TRUE)
       show("hostPanel")
+      show("remaining")
       hide("playRegion")
       hide("playerPanel")
-      POOL_SIZE(length(TILE_POOL))
       output$remainingCalls <- renderText(POOL_SIZE())
     }
   }
@@ -465,7 +470,7 @@ server <- function(input, output, session) {
     if(signalReset()) {
       signalReset(FALSE)
       .gameReset()
-      .newCard()
+      # .newCard() # Should players be given a new card on reset?
       shinyalert(
         inputId = "gameOver",
         title = "New Game",
@@ -502,9 +507,10 @@ server <- function(input, output, session) {
       if (!gameProgress() && !isHost()) {
         shinyalert(
           inputId = "player",
-          title = "Player",
+          title = "Welcome",
           text = "Please enter your name:",
           type = "input",
+          className = "spooky",
           showConfirmButton = TRUE,
           confirmButtonText = "Play",
           showCancelButton = FALSE,
