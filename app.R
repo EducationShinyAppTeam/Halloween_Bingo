@@ -103,7 +103,7 @@ ui <- dashboardPage(
                   tags$li("Diagonals (corner to corner) and four corners also count."),
                   tags$li("Click", tags$strong("BINGO"), "when a win condition is met.")
                 ),
-                bsButton(inputId = "reset", label = "Reset", icon = icon("refresh")),
+                bsButton(inputId = "reset", label = "Clear Card", icon = icon("refresh")),
                 bsButton(inputId = "newCard", label = "New Card", icon = icon("gift")),
                 bsButton(inputId = "bingo", label = "BINGO", icon = icon("hand-stop-o"), disabled = TRUE),
                 br(),
