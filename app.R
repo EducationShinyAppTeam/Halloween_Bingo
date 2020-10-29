@@ -4,21 +4,21 @@ library(shinyalert)
 library(shinyBS)
 library(shinyWidgets)
 
-GRID_SIZE <- 5
-TILE_COUNT <- GRID_SIZE^2
-TILES <- c(
+GRID_SIZE <<- 5
+TILE_COUNT <<- GRID_SIZE^2
+TILES <<- c(
   "bat", "bone", "broom", "cat", "cauldron",
   "frankenstein", "mummy", "poison", "rat",
   "skull", "spider", "vampire", "werewolf", "witch"
 )
-BINGO <- c("B", "I", "N", "G", "O")
-TILE_POOL <- paste(sapply(TILES, function(tile) { paste0(BINGO, "-", tile) }))
-CENTER_TILE <- paste0("grid-", GRID_SIZE %/% 2 + 1, "-", GRID_SIZE %/% 2 + 1)
-APP_TITLE <- "Halloween Bingo"
-callHistory <- reactiveVal(c())
-callHistoryUI <- reactiveVal(list())
-declaredBingo <- reactiveVal(list())
-gameOver <- reactiveVal(FALSE)
+BINGO <<- c("B", "I", "N", "G", "O")
+TILE_POOL <<- paste(sapply(TILES, function(tile) { paste0(BINGO, "-", tile) }))
+CENTER_TILE <<- paste0("grid-", GRID_SIZE %/% 2 + 1, "-", GRID_SIZE %/% 2 + 1)
+APP_TITLE <<- "Halloween Bingo"
+callHistory <<- reactiveVal(c())
+callHistoryUI <<- reactiveVal(list())
+declaredBingo <<- reactiveVal(list())
+gameOver <<- reactiveVal(FALSE)
 
 ui <- dashboardPage(
   skin = "yellow",
@@ -435,10 +435,12 @@ server <- function(input, output, session) {
   })
   
   observe({
+    # TODO: IF GAME OVER ALL REACTIVE VALUES SHOULD RESET
     if(gameOver()) {
       shinyalert(
         inputId = "gameOver",
         title = "Game Over!",
+        text = "All tiles have been called.",
         type = "error"
       )  
     }
@@ -446,7 +448,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$pages, {
     if (input$pages == "game") {
-      #&& !isHost
+      # TODO: PUT THIS BACK -> && !isHost
       if (!gameProgress()) {
         shinyalert(
           inputId = "player",
