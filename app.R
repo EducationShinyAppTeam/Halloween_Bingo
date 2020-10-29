@@ -507,7 +507,7 @@ server <- function(input, output, session) {
       if (!gameProgress() && !isHost()) {
         shinyalert(
           inputId = "player",
-          title = "Welcome",
+          title = "Welcome!",
           text = "Please enter your name:",
           type = "input",
           className = "spooky",
