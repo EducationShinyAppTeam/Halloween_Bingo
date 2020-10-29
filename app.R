@@ -119,6 +119,7 @@ ui <- dashboardPage(
                   id = "history",
                   h3("Call History"),
                   uiOutput("callHistory", class = "callHistory"),
+                  br()
                 )
               )
             )
@@ -174,7 +175,7 @@ server <- function(input, output, session) {
   observe({
     query <- parseQueryString(session$clientData$url_search)
 
-    if (!is.null(query$hostKey) && query$hostKey == "spooky" || isLocal()) {
+    if (!is.null(query$hostKey) && query$hostKey == "2spooky" || isLocal()) {
       isHost <<- TRUE
       show("hostPanel")
       hide("playRegion")
@@ -416,11 +417,6 @@ server <- function(input, output, session) {
       # Insert the latest item to the beginning of the list
       callHistory(append(callHistory(), paste0(col, "-", tile), after = 0))
       callHistoryUI(append(callHistoryUI(), ui, after = 0))
-      
-      # Earliest possible win condition (includes free space)
-      if(length(callHistory()) >= GRID_SIZE) {
-        shinyBS::updateButton(session, inputId = "bingo", disabled = FALSE)
-      }
     } else {
       gameOver(TRUE)
     }
@@ -429,11 +425,16 @@ server <- function(input, output, session) {
   })
   
   observe({
-    if(length(callHistory()) > 0) {
+    calls <- length(callHistory())
+    if(calls > 0) {
       show("history")
       output$callHistory <- renderUI({
         callHistoryUI()
       })
+      if(calls >= GRID_SIZE) {
+        # Earliest possible win condition (includes free space)
+        shinyBS::updateButton(session, inputId = "bingo", disabled = FALSE)
+      }
     }
   })
   
