@@ -360,11 +360,11 @@ server <- function(input, output, session) {
   .printCard <- function() {
     # TODO: CLEAN ME
     HTML("<pre>", 
-       paste(tileset()[1,]), "\n",
-       paste(tileset()[2,]), "\n",
-       paste(tileset()[3,]), "\n",
-       paste(tileset()[4,]), "\n",
-       paste(tileset()[5,]),
+       paste(match(paste0(BINGO, "-", tileset()[1,]), callHistory())), "\n",
+       paste(match(paste0(BINGO, "-", tileset()[2,]), callHistory())), "\n",
+       paste(match(paste0(BINGO, "-", tileset()[3,]), callHistory())), "\n",
+       paste(match(paste0(BINGO, "-", tileset()[4,]), callHistory())), "\n",
+       paste(match(paste0(BINGO, "-", tileset()[5,]), callHistory())),
       "</pre>"
     )
   }
@@ -556,4 +556,4 @@ server <- function(input, output, session) {
   }, ignoreInit = TRUE)
 }
 
-boastApp(ui = ui, server = server)
+boastApp(ui = ui, server = server, config = list(log = FALSE))

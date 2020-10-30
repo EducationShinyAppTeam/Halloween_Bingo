@@ -95,6 +95,12 @@
   flex: 1 1 auto;
   flex-wrap: wrap;
   flex-direction: row;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.callHistory::-webkit-scrollbar {
+  display: none; /* Safari / Chrome */
 }
 
 .call {
